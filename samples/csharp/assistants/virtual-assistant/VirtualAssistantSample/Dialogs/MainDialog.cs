@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.Xml;
 using System.Threading;
 using System.Threading.Tasks;
 using Luis;
@@ -334,7 +335,7 @@ namespace VirtualAssistantSample.Dialogs
 
                     return await stepContext.BeginDialogAsync("Faq");
                 }
-                else if (dispatchIntent == DispatchLuis.Intent.q_Chitchat)
+                else if (ShouldBeginChitChatDialog(stepContext, dispatchIntent))
                 {
                     stepContext.SuppressCompletionMessage(true);
 
@@ -411,10 +412,29 @@ namespace VirtualAssistantSample.Dialogs
         {
             if (dispatchIntent.ToString().Equals(DispatchLuis.Intent.l_General.ToString(), StringComparison.InvariantCultureIgnoreCase) ||
                 dispatchIntent.ToString().Equals(DispatchLuis.Intent.q_Faq.ToString(), StringComparison.InvariantCultureIgnoreCase) ||
-                dispatchIntent.ToString().Equals(DispatchLuis.Intent.q_Chitchat.ToString(), StringComparison.InvariantCultureIgnoreCase) ||
                 dispatchIntent.ToString().Equals(DispatchLuis.Intent.None.ToString(), StringComparison.InvariantCultureIgnoreCase))
             {
                 return false;
+            }
+
+            return true;
+        }
+
+        private bool ShouldBeginChitChatDialog(WaterfallStepContext stepContext, DispatchLuis.Intent dispatchIntent)
+        {
+            if (IsSkillIntent(dispatchIntent))
+            {
+                return false;
+            }
+
+            if (dispatchIntent == DispatchLuis.Intent.l_General)
+            {
+                var generalResult = stepContext.Context.TurnState.Get<GeneralLuis>(StateProperties.GeneralResult);
+                if (generalResult != null)
+                {
+                    (var _, var generalScore) = generalResult.TopIntent();
+                    return generalScore < 0.5;
+                }
             }
 
             return true;
